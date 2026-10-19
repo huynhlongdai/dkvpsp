@@ -1,31 +1,31 @@
 #!/usr/bin/env bash
 #
-# MyVPS one-line installer / updater
+# DKVPS one-line installer / updater
 #
 #   curl -fsSL https://raw.githubusercontent.com/huynhlongdai/dkvpsp/main/get.sh | sudo bash
 #   curl -fsSL https://raw.githubusercontent.com/huynhlongdai/dkvpsp/main/get.sh | sudo bash -s -- --profile lite --ssh-port 2222
 #
-# Already installed?  The same line updates MyVPS in place (no secrets rotated).
+# Already installed?  The same line updates DKVPS in place (no secrets rotated).
 #
 # Options (each also has an env var, handy for fleets / cloud-init):
-#   --profile lite|standard   MYVPS_PROFILE     (default: auto from RAM, <=1.5 GB = lite)
-#   --php 8.3                 MYVPS_PHP_VERSION
-#   --ssh-port N              MYVPS_SSH_PORT    (default: keep current port)
-#   --no-firewall             MYVPS_SKIP_FIREWALL=1
-#   --no-sshd                 MYVPS_SKIP_SSHD=1 (do not touch sshd_config)
-#   --no-https                MYVPS_NGINX_HTTPS=0 (auto when :443 is taken)
-#   --skip-upgrade            MYVPS_SKIP_UPGRADE=1 (no full apt/dnf upgrade)
-#   --version X.Y.Z           MYVPS_RELEASE     (default: latest)
-#   --mirror URL              MYVPS_MIRROR      (where get.sh, latest, myvps-*.tar.gz live)
-#   --reinstall               MYVPS_FORCE_REINSTALL=1 (full reinstall, new secrets)
+#   --profile lite|standard   DKVPS_PROFILE     (default: auto from RAM, <=1.5 GB = lite)
+#   --php 8.3                 DKVPS_PHP_VERSION
+#   --ssh-port N              DKVPS_SSH_PORT    (default: keep current port)
+#   --no-firewall             DKVPS_SKIP_FIREWALL=1
+#   --no-sshd                 DKVPS_SKIP_SSHD=1 (do not touch sshd_config)
+#   --no-https                DKVPS_NGINX_HTTPS=0 (auto when :443 is taken)
+#   --skip-upgrade            DKVPS_SKIP_UPGRADE=1 (no full apt/dnf upgrade)
+#   --version X.Y.Z           DKVPS_RELEASE     (default: latest)
+#   --mirror URL              DKVPS_MIRROR      (where get.sh, latest, dkvps-*.tar.gz live)
+#   --reinstall               DKVPS_FORCE_REINSTALL=1 (full reinstall, new secrets)
 #   --dry-run                 only run the pre-flight checks
 #
 set -Eeuo pipefail
 
-MIRROR="${MYVPS_MIRROR:-https://raw.githubusercontent.com/huynhlongdai/dkvpsp/main}"
-RELEASE="${MYVPS_RELEASE:-latest}"
+MIRROR="${DKVPS_MIRROR:-https://raw.githubusercontent.com/huynhlongdai/dkvpsp/main}"
+RELEASE="${DKVPS_RELEASE:-latest}"
 DRY_RUN=0
-LOG=/var/log/myvps-install.log
+LOG=/var/log/dkvps-install.log
 
 c_red='\033[0;31m'; c_grn='\033[0;32m'; c_yel='\033[1;33m'; c_cyn='\033[0;36m'; c_off='\033[0m'
 say()  { echo -e "${c_cyn}==>${c_off} $*"; }
@@ -35,16 +35,16 @@ die()  { echo -e "${c_red}[ERROR]${c_off} $*" >&2; exit 1; }
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --profile)      export MYVPS_PROFILE="${2:?}"; shift ;;
-        --php)          export MYVPS_PHP_VERSION="${2:?}"; shift ;;
-        --ssh-port)     export MYVPS_SSH_PORT="${2:?}"; shift ;;
-        --no-firewall)  export MYVPS_SKIP_FIREWALL=1 ;;
-        --no-sshd)      export MYVPS_SKIP_SSHD=1 ;;
-        --no-https)     export MYVPS_NGINX_HTTPS=0 ;;
-        --skip-upgrade) export MYVPS_SKIP_UPGRADE=1 ;;
+        --profile)      export DKVPS_PROFILE="${2:?}"; shift ;;
+        --php)          export DKVPS_PHP_VERSION="${2:?}"; shift ;;
+        --ssh-port)     export DKVPS_SSH_PORT="${2:?}"; shift ;;
+        --no-firewall)  export DKVPS_SKIP_FIREWALL=1 ;;
+        --no-sshd)      export DKVPS_SKIP_SSHD=1 ;;
+        --no-https)     export DKVPS_NGINX_HTTPS=0 ;;
+        --skip-upgrade) export DKVPS_SKIP_UPGRADE=1 ;;
         --version)      RELEASE="${2:?}"; shift ;;
         --mirror)       MIRROR="${2:?}"; shift ;;
-        --reinstall)    export MYVPS_FORCE_REINSTALL=1 ;;
+        --reinstall)    export DKVPS_FORCE_REINSTALL=1 ;;
         --dry-run)      DRY_RUN=1 ;;
         -y|--yes)       ;;
         -h|--help)      sed -n '2,24p' "$0" 2>/dev/null || true; exit 0 ;;
@@ -53,10 +53,10 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 MIRROR="${MIRROR%/}"
-[[ "$MIRROR" == *"__MIR""ROR__"* ]] && die "No mirror configured: pass --mirror URL or MYVPS_MIRROR"
+[[ "$MIRROR" == *"__MIR""ROR__"* ]] && die "No mirror configured: pass --mirror URL or DKVPS_MIRROR"
 [[ "$RELEASE" == latest || "$RELEASE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "Bad --version: $RELEASE"
-[[ -z "${MYVPS_PROFILE:-}" || "$MYVPS_PROFILE" =~ ^(lite|standard)$ ]] || die "--profile must be lite or standard"
-[[ -z "${MYVPS_SSH_PORT:-}" || "$MYVPS_SSH_PORT" =~ ^[0-9]+$ ]] || die "--ssh-port must be a number"
+[[ -z "${DKVPS_PROFILE:-}" || "$DKVPS_PROFILE" =~ ^(lite|standard)$ ]] || die "--profile must be lite or standard"
+[[ -z "${DKVPS_SSH_PORT:-}" || "$DKVPS_SSH_PORT" =~ ^[0-9]+$ ]] || die "--ssh-port must be a number"
 
 # ------------------------------------------------------------------
 # Pre-flight: fail in seconds, not after 5 minutes of apt
@@ -77,7 +77,7 @@ case "$(uname -m)" in x86_64|amd64|aarch64|arm64) ;; *) die "Unsupported CPU arc
 
 VIRT=$(systemd-detect-virt 2>/dev/null || echo none)
 if systemd-detect-virt -cq 2>/dev/null; then
-    export MYVPS_ZRAM="${MYVPS_ZRAM:-0}"   # containers share the host kernel: no zram
+    export DKVPS_ZRAM="${DKVPS_ZRAM:-0}"   # containers share the host kernel: no zram
     warn "Container detected ($VIRT): zram disabled, swap left to the host"
 fi
 
@@ -97,8 +97,8 @@ CPUS=$(nproc)
 ok "Resources: ${CPUS} vCPU, ${RAM_MB} MB RAM, ${DISK_MB} MB free disk, virt=${VIRT}"
 
 INSTALLED=0
-[[ -f /etc/myvps/.myvps.conf ]] && INSTALLED=1
-[[ "${MYVPS_FORCE_REINSTALL:-0}" == 1 ]] && INSTALLED=0
+[[ -f /etc/dkvps/.dkvps.conf ]] && INSTALLED=1
+[[ "${DKVPS_FORCE_REINSTALL:-0}" == 1 ]] && INSTALLED=0
 
 port_owner() { { ss -Hltnp "sport = :$1" 2>/dev/null || true; } | sed -n 's/.*users:(("\([^"]*\)".*/\1/p' | head -1; }
 if (( ! INSTALLED )); then
@@ -106,18 +106,19 @@ if (( ! INSTALLED )); then
         systemctl is-active -q "$p" 2>/dev/null && die "Another web stack/panel is running ($p). Use a fresh VPS."
     done
     [[ -d /usr/local/cpanel || -d /www/server/panel || -d /usr/local/CyberCP ]] && die "Another control panel is installed. Use a fresh VPS."
+    [[ -f /etc/myvps/.myvps.conf && "${DKVPS_FORCE_REINSTALL:-0}" != 1 ]] && die "MyVPS 1.x (old name) is installed. DKVPS 2.0 needs a fresh VPS, or re-run with --reinstall to install over it (new secrets)."
     if command -v ss >/dev/null; then
         o=$(port_owner 80);  [[ -z "$o" || "$o" == nginx ]] || die "Port 80 is used by '$o'. Free it first."
         o=$(port_owner 443)
         if [[ -n "$o" && "$o" != nginx ]]; then
-            export MYVPS_NGINX_HTTPS=0
-            warn "Port 443 is used by '$o': nginx will not bind :443 (MYVPS_NGINX_HTTPS=0)"
+            export DKVPS_NGINX_HTTPS=0
+            warn "Port 443 is used by '$o': nginx will not bind :443 (DKVPS_NGINX_HTTPS=0)"
         fi
     fi
     # Keep the current SSH port unless told otherwise (no interactive prompt over a pipe)
-    if [[ -z "${MYVPS_SSH_PORT:-}" ]]; then
+    if [[ -z "${DKVPS_SSH_PORT:-}" ]]; then
         cur=$( { sshd -T 2>/dev/null || true; } | awk '/^port /{print $2; exit}')
-        export MYVPS_SSH_PORT="${cur:-22}"
+        export DKVPS_SSH_PORT="${cur:-22}"
     fi
 fi
 
@@ -126,8 +127,8 @@ if (( DRY_RUN )); then
     exit 0
 fi
 
-exec 9>/run/myvps-get.lock
-flock -n 9 || die "Another MyVPS install/update is already running"
+exec 9>/run/dkvps-get.lock
+flock -n 9 || die "Another DKVPS install/update is already running"
 
 # ------------------------------------------------------------------
 # Tools needed to fetch + verify
@@ -144,47 +145,58 @@ if (( ${#need[@]} )); then
     fi
 fi
 
-fetch() { curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 15 ${MYVPS_TOKEN:+-H "Authorization: Bearer $MYVPS_TOKEN"} "$1" -o "$2"; }
+fetch() { curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 15 ${DKVPS_TOKEN:+-H "Authorization: Bearer $DKVPS_TOKEN"} "$1" -o "$2"; }
 
 # ------------------------------------------------------------------
 # Download + verify release
 # ------------------------------------------------------------------
-TMP=$(mktemp -d /tmp/myvps-get.XXXXXX)
+TMP=$(mktemp -d /tmp/dkvps-get.XXXXXX)
 trap 'rm -rf "$TMP"' EXIT
 
 if [[ "$RELEASE" == latest ]]; then
     fetch "$MIRROR/latest" "$TMP/latest" || die "Cannot reach $MIRROR/latest"
     read -r RELEASE SUM < "$TMP/latest"
 else
-    fetch "$MIRROR/myvps-$RELEASE.tar.gz.sha256" "$TMP/sum" || die "Release $RELEASE not found on mirror"
+    fetch "$MIRROR/dkvps-$RELEASE.tar.gz.sha256" "$TMP/sum" || die "Release $RELEASE not found on mirror"
     read -r SUM _ < "$TMP/sum"
 fi
 [[ "$RELEASE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ && "$SUM" =~ ^[0-9a-f]{64}$ ]] || die "Mirror returned a malformed release index"
 
-say "Downloading MyVPS $RELEASE"
-fetch "$MIRROR/myvps-$RELEASE.tar.gz" "$TMP/myvps.tar.gz" || die "Download failed"
-echo "$SUM  $TMP/myvps.tar.gz" | sha256sum -c --quiet - || die "Checksum mismatch: refusing to install"
+say "Downloading DKVPS $RELEASE"
+fetch "$MIRROR/dkvps-$RELEASE.tar.gz" "$TMP/dkvps.tar.gz" || die "Download failed"
+echo "$SUM  $TMP/dkvps.tar.gz" | sha256sum -c --quiet - || die "Checksum mismatch: refusing to install"
 ok "Checksum verified"
 
-DEST=/opt/myvps/releases/$RELEASE
+DEST=/opt/dkvps/releases/$RELEASE
 rm -rf "$DEST.new" && mkdir -p "$DEST.new"
-tar -xzf "$TMP/myvps.tar.gz" -C "$DEST.new" --strip-components=1 --no-same-owner
-[[ -f "$DEST.new/install.sh" && -f "$DEST.new/cli/myvps" ]] || die "Release archive is incomplete"
+tar -xzf "$TMP/dkvps.tar.gz" -C "$DEST.new" --strip-components=1 --no-same-owner
+[[ -f "$DEST.new/install.sh" && -f "$DEST.new/cli/dkvps" ]] || die "Release archive is incomplete"
 rm -rf "$DEST" && mv "$DEST.new" "$DEST"
-ln -sfn "$DEST" /opt/myvps/src
+ln -sfn "$DEST" /opt/dkvps/src
 # keep the 3 newest releases
-ls -1d /opt/myvps/releases/*/ 2>/dev/null | sort -V | head -n -3 | xargs -r rm -rf
+ls -1d /opt/dkvps/releases/*/ 2>/dev/null | sort -V | head -n -3 | xargs -r rm -rf
 
-mkdir -p /etc/myvps
-printf 'mirror=%s\nrelease=%s\n' "$MIRROR" "$RELEASE" > /etc/myvps/release
+mkdir -p /etc/dkvps
+printf 'mirror=%s\nrelease=%s\n' "$MIRROR" "$RELEASE" > /etc/dkvps/release
 
 if (( INSTALLED )); then
-    say "MyVPS is already installed: updating to $RELEASE"
+    say "DKVPS is already installed: updating to $RELEASE"
     rm -rf "$TMP"; trap - EXIT
-    exec bash "$DEST/cli/myvps" update --from "$DEST"
+    exec bash "$DEST/cli/dkvps" update --from "$DEST"
 fi
 
-say "Installing MyVPS $RELEASE (log: $LOG). This takes ~5 minutes on a small VPS."
+if [[ -f /etc/myvps/.myvps.conf ]]; then
+    # --reinstall over MyVPS 1.x (the old name): retire its services so ports and timers don't clash
+    say "Retiring MyVPS 1.x services (sites and databases are left untouched)"
+    for u in $(systemctl list-unit-files --no-legend 'myvps*' 2>/dev/null | awk '{print $1}'); do
+        systemctl disable --now "$u" >/dev/null 2>&1 || true
+    done
+    rm -f /etc/systemd/system/myvps* /etc/cron.d/myvps* /etc/profile.d/myvps* /usr/bin/myvps
+    rm -rf /etc/systemd/system/myvps*.d
+    systemctl daemon-reload || true
+    mv /etc/myvps "/etc/myvps.old-$(date +%Y%m%d%H%M%S)"
+fi
+say "Installing DKVPS $RELEASE (log: $LOG). This takes ~5 minutes on a small VPS."
 umask 077; : > "$LOG"; umask 022
 START=$(date +%s)
 set +e
@@ -192,4 +204,4 @@ bash "$DEST/install.sh" < /dev/null 2>&1 | tee -a "$LOG"
 rc=${PIPESTATUS[0]}
 set -e
 (( rc == 0 )) || die "Install failed (exit $rc). Last lines are above; full log: $LOG"
-ok "Installed in $(( $(date +%s) - START ))s. Credentials: /etc/myvps/.info.conf  |  Menu: myvps"
+ok "Installed in $(( $(date +%s) - START ))s. Credentials: /etc/dkvps/.info.conf  |  Menu: dkvps"
