@@ -67,8 +67,8 @@ MIRROR="${MIRROR%/}"
 . /etc/os-release
 OS="$ID"; VER="${VERSION_ID%%.*}"
 case "$OS:$VER" in
-    ubuntu:20|ubuntu:22|ubuntu:24|debian:11|debian:12|almalinux:8|almalinux:9|rocky:8|rocky:9) ;;
-    *) die "Unsupported OS: ${PRETTY_NAME:-$OS $VERSION_ID}. Supported: Ubuntu 20/22/24, Debian 11/12, AlmaLinux/Rocky 8/9" ;;
+    ubuntu:20|ubuntu:22|ubuntu:24|debian:11|debian:12|debian:13|almalinux:8|almalinux:9|rocky:8|rocky:9) ;;
+    *) die "Unsupported OS: ${PRETTY_NAME:-$OS $VERSION_ID}. Supported: Ubuntu 20/22/24, Debian 11/12/13, AlmaLinux/Rocky 8/9" ;;
 esac
 ok "OS: ${PRETTY_NAME:-$OS $VERSION_ID}"
 

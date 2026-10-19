@@ -1,6 +1,6 @@
 # MyVPS installer
 
-Install on a fresh Ubuntu 20/22/24, Debian 11/12, AlmaLinux/Rocky 8/9 VPS:
+Install on a fresh Ubuntu 20/22/24, Debian 11/12/13, AlmaLinux/Rocky 8/9 VPS:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/huynhlongdai/dkvpsp/main/get.sh | sudo bash
