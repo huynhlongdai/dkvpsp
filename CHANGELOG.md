@@ -2,6 +2,20 @@
 
 Each `## X.Y.Z` section is shown before an update (`dkvps update`, get.sh on an installed server, DKVPS Hub).
 
+## 2.2.0 (2026-10-20)
+- DKVPS Free (no key, forever): 1 domain + basic features. A license key unlocks unlimited domains + Pro. Register to get a 7-day Pro trial key (enter it in menu > License); when it ends the server goes back to Free.
+- Servers that already have more domains keep all of them running; only adding new ones needs a key.
+- Pro features: unlimited domains, encrypted cloud backup + schedule, migrate, staging, per-site CPU/RAM limits, private Redis per site, apps (Node/Bun/Python), webhook deploy, daily malware scan, Telegram bot, Cloudflare Under Attack/auto shield. Things already set up keep running.
+- New `dkvps scan`: webshell/backdoor signatures, PHP files in uploads, modified WordPress core files; `--quarantine`, `scan restore`.
+- New `dkvps doctor`: health check of services, configs, disk, RAM, OOM kills, SSL expiry, DNS, sites; `--md` writes a report to paste to an AI or support.
+- New `dkvps admin open [hours]` (or `dkvps pma open`): phpMyAdmin on a random port with one-time login that closes itself; `dkvps admin lock` closes the permanent port 8080.
+- New `dkvps db link <db> [minutes]`: one-off download link for a database dump, deleted after 15 minutes.
+- New `dkvps hook on <domain>`: deploy on git push (GitHub/GitLab/Gitea), no resident process.
+- New `dkvps guard`: nginx and MariaDB are protected when RAM runs out, PHP workers go first; enabled on update.
+- New `dkvps nginx brotli on|off` (on by default for new installs).
+- The daily license refresh cron is removed: the license refreshes when you use dkvps.
+- Menu: new "Security & Tools" item; License menu lists what Pro adds.
+
 ## 2.1.5 (2026-10-20)
 - No background checks: the daily check cron and the login update notice are removed.
 - Version + license are checked only when you open `dkvps` (once per launch, a few seconds at most) or run `dkvps check`.
