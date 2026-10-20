@@ -2,6 +2,10 @@
 
 Each `## X.Y.Z` section is shown before an update (`dkvps update`, get.sh on an installed server, DKVPS Hub).
 
+## 2.1.5 (2026-10-20)
+- No background checks: the daily check cron and the login update notice are removed.
+- Version + license are checked only when you open `dkvps` (once per launch, a few seconds at most) or run `dkvps check`.
+
 ## 2.1.4 (2026-10-20)
 - Updates never run by themselves: `dkvps update` shows the version change and this changelog first and asks for confirmation (`-y` to skip).
 - `dkvps update preview` shows what would be updated without changing anything.
@@ -13,7 +17,7 @@ Each `## X.Y.Z` section is shown before an update (`dkvps update`, get.sh on an 
 
 ## 2.1.2 (2026-10-20)
 - New `dkvps check`: license refresh with the hub + new version lookup (`--json` supported). Only checks, never updates.
-- Main menu shows the version and license state; a daily cron refreshes that cached check.
+- Main menu shows the version and license state.
 - DKVPS Hub: latest release, servers needing an update, license problems, per-server check.
 
 ## 2.1.1 (2026-10-20)
