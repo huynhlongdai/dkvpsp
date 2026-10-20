@@ -18,6 +18,8 @@
 #   --version X.Y.Z           DKVPS_RELEASE     (default: latest)
 #   --mirror URL              DKVPS_MIRROR      (where get.sh, latest, dkvps-*.tar.gz live)
 #   --reinstall               DKVPS_FORCE_REINSTALL=1 (full reinstall, new secrets)
+#   --license KEY             DKVPS_LICENSE     (activate this license key after install/update)
+#   --hub URL                 DKVPS_HUB_URL     (license hub, default: built into dkvps)
 #   --dry-run                 only run the pre-flight checks
 #
 set -Eeuo pipefail
@@ -33,6 +35,17 @@ ok()   { echo -e "${c_grn}[OK]${c_off} $*"; }
 warn() { echo -e "${c_yel}[WARN]${c_off} $*"; }
 die()  { echo -e "${c_red}[ERROR]${c_off} $*" >&2; exit 1; }
 
+# after a successful install/update: activate --license KEY (a failure only warns)
+activate_license() {
+    [[ -n "${DKVPS_LICENSE:-}" ]] || return 0
+    local cli=(dkvps); command -v dkvps >/dev/null || cli=(bash "$DEST/cli/dkvps")
+    say "Activating license"
+    if ! "${cli[@]}" license activate "$DKVPS_LICENSE" ${DKVPS_HUB_URL:+--hub "$DKVPS_HUB_URL"} </dev/null; then
+        warn "License activation failed. Retry later: dkvps license activate <KEY>${DKVPS_HUB_URL:+ --hub $DKVPS_HUB_URL}"
+    fi
+    return 0
+}
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --profile)      export DKVPS_PROFILE="${2:?}"; shift ;;
@@ -45,9 +58,11 @@ while [[ $# -gt 0 ]]; do
         --version)      RELEASE="${2:?}"; shift ;;
         --mirror)       MIRROR="${2:?}"; shift ;;
         --reinstall)    export DKVPS_FORCE_REINSTALL=1 ;;
+        --license)      export DKVPS_LICENSE="${2:?}"; shift ;;
+        --hub)          export DKVPS_HUB_URL="${2:?}"; shift ;;
         --dry-run)      DRY_RUN=1 ;;
         -y|--yes)       ;;
-        -h|--help)      sed -n '2,24p' "$0" 2>/dev/null || true; exit 0 ;;
+        -h|--help)      sed -n '2,26p' "$0" 2>/dev/null || true; exit 0 ;;
         *) die "Unknown option: $1 (see --help)" ;;
     esac
     shift
@@ -57,6 +72,8 @@ MIRROR="${MIRROR%/}"
 [[ "$RELEASE" == latest || "$RELEASE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "Bad --version: $RELEASE"
 [[ -z "${DKVPS_PROFILE:-}" || "$DKVPS_PROFILE" =~ ^(lite|standard)$ ]] || die "--profile must be lite or standard"
 [[ -z "${DKVPS_SSH_PORT:-}" || "$DKVPS_SSH_PORT" =~ ^[0-9]+$ ]] || die "--ssh-port must be a number"
+[[ -z "${DKVPS_LICENSE:-}" || "${DKVPS_LICENSE^^}" =~ ^DKVPS(-[0-9A-Z]{5}){4}$ ]] || die "--license must look like DKVPS-XXXXX-XXXXX-XXXXX-XXXXX"
+[[ -z "${DKVPS_HUB_URL:-}" || "$DKVPS_HUB_URL" =~ ^https?://[A-Za-z0-9.:_/-]+$ ]] || die "--hub must be an http(s) URL"
 
 # ------------------------------------------------------------------
 # Pre-flight: fail in seconds, not after 5 minutes of apt
@@ -182,7 +199,13 @@ printf 'mirror=%s\nrelease=%s\n' "$MIRROR" "$RELEASE" > /etc/dkvps/release
 if (( INSTALLED )); then
     say "DKVPS is already installed: updating to $RELEASE"
     rm -rf "$TMP"; trap - EXIT
-    exec bash "$DEST/cli/dkvps" update --from "$DEST"
+    [[ -z "${DKVPS_LICENSE:-}" ]] && exec bash "$DEST/cli/dkvps" update --from "$DEST"
+    set +e
+    bash "$DEST/cli/dkvps" update --from "$DEST"
+    rc=$?
+    set -e
+    if (( rc == 0 )); then activate_license; else warn "Update failed (exit $rc): license not activated"; fi
+    exit "$rc"
 fi
 
 if [[ -f /etc/myvps/.myvps.conf ]]; then
@@ -205,3 +228,4 @@ rc=${PIPESTATUS[0]}
 set -e
 (( rc == 0 )) || die "Install failed (exit $rc). Last lines are above; full log: $LOG"
 ok "Installed in $(( $(date +%s) - START ))s. Credentials: /etc/dkvps/.info.conf  |  Menu: dkvps"
+activate_license
