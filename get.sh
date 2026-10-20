@@ -19,6 +19,7 @@
 #   --mirror URL              DKVPS_MIRROR      (where get.sh, latest, dkvps-*.tar.gz live)
 #   --reinstall               DKVPS_FORCE_REINSTALL=1 (full reinstall, new secrets)
 #   --dry-run                 only run the pre-flight checks
+#   -y, --yes                 on an installed server: update without asking (the preview is still printed)
 #
 set -Eeuo pipefail
 
@@ -46,7 +47,7 @@ while [[ $# -gt 0 ]]; do
         --mirror)       MIRROR="${2:?}"; shift ;;
         --reinstall)    export DKVPS_FORCE_REINSTALL=1 ;;
         --dry-run)      DRY_RUN=1 ;;
-        -y|--yes)       ;;
+        -y|--yes)       ASSUME_YES=1 ;;
         -h|--help)      sed -n '2,24p' "$0" 2>/dev/null || true; exit 0 ;;
         *) die "Unknown option: $1 (see --help)" ;;
     esac
@@ -161,6 +162,40 @@ else
     read -r SUM _ < "$TMP/sum"
 fi
 [[ "$RELEASE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ && "$SUM" =~ ^[0-9a-f]{64}$ ]] || die "Mirror returned a malformed release index"
+
+# Installed server: never update silently. Show current -> new + the changelog, then ask.
+if (( INSTALLED )) && [[ "${DKVPS_FORCE_REINSTALL:-0}" != 1 ]]; then
+    CUR=$(cat /etc/dkvps/menu/VERSION 2>/dev/null || sed -n 's/^version=//p' /etc/dkvps/.dkvps.conf 2>/dev/null | head -1)
+    CUR=${CUR:-0.0.0}
+    newer() { [[ "$1" != "$2" && "$(printf '%s\n%s\n' "$1" "$2" | sort -V | tail -1)" == "$1" ]]; }
+    if [[ "$CUR" == "$RELEASE" ]]; then ok "DKVPS $CUR is already installed (latest). Nothing to update."; exit 0; fi
+    echo ""
+    say "Update preview: DKVPS $CUR -> $RELEASE$(newer "$CUR" "$RELEASE" && echo '  (DOWNGRADE)')"
+    if fetch "$MIRROR/CHANGELOG.md" "$TMP/CHANGELOG.md" 2>/dev/null; then
+        show=0
+        while IFS= read -r line; do
+            if [[ "$line" =~ ^##[[:space:]]+([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+                v=${BASH_REMATCH[1]}; show=0
+                if newer "$RELEASE" "$CUR"; then newer "$v" "$CUR" && ! newer "$v" "$RELEASE" && show=1
+                else [[ "$v" == "$RELEASE" ]] && show=1; fi
+            fi
+            (( show )) && echo "    $line"
+        done < "$TMP/CHANGELOG.md"
+    else
+        echo "    (no changelog on the mirror)"
+    fi
+    echo "    Sites, databases and settings are kept; the update rolls back by itself if its checks fail."
+    echo ""
+    if [[ "${ASSUME_YES:-0}" == 1 || "${DKVPS_YES:-0}" == 1 ]]; then
+        ok "Confirmed by --yes"
+    elif [[ -r /dev/tty ]] && { exec 3</dev/tty; } 2>/dev/null; then
+        read -r -u 3 -p "Update DKVPS $CUR -> $RELEASE now? [y/N] " ans || ans=""
+        exec 3<&-
+        [[ "$ans" =~ ^[Yy] ]] || { warn "Update cancelled. Nothing was changed."; exit 0; }
+    else
+        die "No terminal to confirm the update. Re-run with --yes to update $CUR -> $RELEASE."
+    fi
+fi
 
 say "Downloading DKVPS $RELEASE"
 fetch "$MIRROR/dkvps-$RELEASE.tar.gz" "$TMP/dkvps.tar.gz" || die "Download failed"
